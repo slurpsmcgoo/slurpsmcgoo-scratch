@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      Network access only to the show's own server. Besides keeping the show
+      offline, this blocks the usage telemetry that @mediapipe/tasks-vision
+      sends to Google (task type, OS, latency stats) with no option to disable it.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self'; worker-src 'self' blob:"
+    />
+    <title>Halloween Window</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+      canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+      body.hide-cursor, body.hide-cursor canvas { cursor: none; }
+    </style>
+  </head>
+  <body>
+    <canvas id="display"></canvas>
+    <canvas id="overlay"></canvas>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+{
+  // server/ and scripts/ run directly under Node's type stripping, which only
+  // removes types: no enums, namespaces or constructor parameter properties.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "erasableSyntaxOnly": true,
+    "types": ["node"]
+  },
+  "include": ["server", "scripts"]
+}

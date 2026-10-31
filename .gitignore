@@ -1,0 +1,19 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# OS and editor
+.DS_Store
+*.log
+
+# Secrets
+.env
+.env.*
+
+# Local agent settings
+.claude/settings.local.json
+
+# halloween: generated at install or runtime
+halloween/logs/
+halloween/public/models/

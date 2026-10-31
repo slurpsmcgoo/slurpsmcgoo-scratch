@@ -1,0 +1,31 @@
+{
+ "_about": "Scooby-Doo van GIF, 34 frames 500x375. Made with: inspect --clusters 28 --max-row 272 --seed 0. Class numbers only mean anything for that palette.",
+ "fg_classes": [2, 3, 5, 7, 8, 10, 11, 13, 14, 15, 17, 18, 21, 22, 23, 25, 27],
+ "outline_classes": [16, 19],
+ "ambiguous": {
+  "19": {"max_size": 1500, "min_border_frac": 0.25},
+  "4":  {"max_size": 1500, "min_border_frac": 0.30},
+  "16": {"max_size": 400,  "min_border_frac": 0.40},
+  "1":  {"max_size": 150,  "min_border_frac": 0.50}
+ },
+ "extra_fg_colors": [[55, 105, 190], [42, 85, 165]],
+ "cutoff": {"class": 4, "search_rows": [255, 300], "run": 4, "smooth": 15, "default_row": 272},
+ "band_exclude": {"classes": [23], "rows_above_cutoff": 5},
+ "zone_rules": [{"class": 4, "rows": [90, 230], "exclude_largest_component_pad": 8}],
+ "wall_classes": [0, 6],
+ "params": {"min_seed_px": 25, "min_object_px": 60, "outline_dilate": 3, "small_hole_px": 200, "wall_frac_veto": 0.6},
+ "temporal": {"radius": 4, "color_tol": 25},
+ "sam": {
+  "use_as_veto": true,
+  "veto_dilate": 2,
+  "min_px": 60,
+  "prompts": {
+   "shaggy": [[195, 180], [175, 55]],
+   "scooby": [[340, 190], [300, 125]],
+   "velma":  [[120, 260], [118, 185]],
+   "daphne": [[285, 258], [240, 172]],
+   "fred":   [[345, 252], [392, 232], [385, 140]]
+  },
+  "negatives": [[240, 100], [420, 90], [60, 180], [440, 200]]
+ }
+}
