@@ -35,6 +35,16 @@ Each team has five kubbs on its baseline; the king stands in the middle. On your
 3. If you leave field kubbs standing, the other team throws from the nearest one instead of their baseline.
 4. When all the other team's kubbs are down, throw at the king from your baseline. Topple it to win; topple it early and you lose.
 
+## Play online with friends
+
+1. **Put the game somewhere your friends can open it.** Pushes to `main` publish it to GitHub Pages (`.github/workflows/kubb-pages.yml`). Once, in the repo's Settings → Pages, set Source to "GitHub Actions". GitHub Pages needs a public repo (or a paid plan for private ones). The game is then at `https://<your-user>.github.io/<repo>/`. Any static host works too: `npm run build` and upload `dist/` (to Netlify Drop or Cloudflare Pages, for example).
+   - Same Wi-Fi only? `npm run dev` and have friends open `http://<your computer's IP>:5174`.
+2. Open the game, choose **Play online → Host a game**, and press **Copy link**.
+3. Send the link. Friends open it, type a name and press **Join**; they appear in the lobby.
+4. Arrange teams (add computer players if you like), pick where to play, tick beer mode if you want it, and press **Start**.
+
+The host's browser runs the game, so keep that tab open and in front. Players who drop out are taken over by the computer.
+
 ## Develop
 
 Needs Node 24 or newer.

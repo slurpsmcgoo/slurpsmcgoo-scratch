@@ -30,7 +30,7 @@ src/bot/           computer players
 src/game/          session.ts (state + live ThrowSim + action queue), controller.ts (who acts; bots; network port), bac.ts (beer-mode BAC model and effects)
 src/net/           protocol, transport (PeerJS, BroadcastChannel, memory), room (host/client)
 src/input/         desktop.ts (mouse, trackpad, touch), xr.ts (WebXR, untested on hardware)
-src/render/        stage, environment (park, moon), ocean, textures (procedural), pieces, cans, avatars, camera, view, dust
+src/render/        stage, environment (park, moon), ocean, impacts (lasting lunar dents), textures (procedural), pieces, cans, avatars, camera, view, dust
 src/audio/         synthesised sound
 src/ui/            menu, hud, settings, dom helpers, styles.css
 src/debug/         scenarios for browser checks

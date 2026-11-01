@@ -91,6 +91,7 @@ export class Stage {
     this.time += dt;
     if (!this.renderer.xr.isPresenting) this.rig.update(dt);
     this.env?.update(dt, this.time);
+    this.dust.setCamera(this.rig.camera, this.renderer.domElement.clientHeight || innerHeight);
     this.dust.update(dt);
   }
 

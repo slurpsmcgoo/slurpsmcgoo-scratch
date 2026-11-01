@@ -77,7 +77,7 @@ Kubb is turn-based, so only one player acts at a time. That makes the network si
 Three.js, PBR materials, `ACESFilmic` tone mapping, soft sun shadows. Wood, bark, lawn, regolith and Earth textures are drawn on canvases at start-up.
 
 - **Park:** Three's physical sky model, also prefiltered into the environment lighting; a lawn with large-scale patchiness and mowing stripes (shader); instanced grass blades swaying in a vertex shader; trees built from displaced spheres.
-- **Moon:** black sky with stars, the sun's disc, the Earth (lit by the same sun, with an atmosphere rim); cratered regolith terrain that is flat where the game is played; rocks; a lunar module in the distance. Impacts throw up dust that flies in clean ballistic arcs with no air to slow it.
+- **Moon:** black sky with stars, the sun's disc, the Earth (lit by the same sun, with an atmosphere rim); cratered regolith terrain that is flat where the game is played; rocks; a lunar module in the distance. Ground impacts throw up a big plume of regolith, an ejecta cone plus a dense core, flying in clean ballistic arcs with no air to slow it, then settling where it lands. Each one also dents a fine height grid laid over the playing area (`render/impacts.ts`): a small crater with a raised rim and darker disturbed regolith that lasts the whole game. The dents are visual only; the physics ground stays flat, which keeps throws deterministic and fair.
 
 A computer-vs-computer game plays behind the menu.
 

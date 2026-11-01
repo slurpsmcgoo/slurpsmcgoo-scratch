@@ -7,6 +7,7 @@ import { Sky } from 'three/addons/objects/Sky.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CFG, DEG, sceneDef, type QualityName, type SceneDef } from '../config.ts';
 import type { Vec3 } from '../types.ts';
+import { ImpactField } from './impacts.ts';
 import { buildOcean } from './ocean.ts';
 import { barkTexture, earthTexture, lawnTexture, macroNoiseTexture, makeNoise, prng, regolithTextures } from './textures.ts';
 
@@ -20,6 +21,10 @@ export interface Environment {
   dispose(): void;
   /** Underwater settings: release n bubbles at p. */
   bubbles?(p: Vec3, n: number): void;
+  /** Settings with a soft surface: leave a lasting dent where something hit the ground. */
+  deform?(p: Vec3, strength: number): void;
+  /** Clear marks left by a previous game. */
+  reset?(): void;
 }
 
 /** Keep things off the pitch and its surroundings, where people stand. */
@@ -417,6 +422,8 @@ function buildMoon(def: SceneDef, scene: THREE.Scene, renderer: THREE.WebGLRende
   }
   const hills = makeNoise(16, 43);
   const heightAt = (x: number, z: number): number => {
+    // The impact field covers the playing area; the ground sits just below it there, so dents show.
+    if (Math.abs(x) <= 7 && Math.abs(z) <= 10) return -0.05;
     const flat = Math.min(1, Math.max(0, Math.max(Math.abs(x) - 7, Math.abs(z) - 10, 0) / 14));
     let y = (hills(x / 700 + 0.5, z / 700 + 0.5) - 0.5) * 14 * flat * flat;
     for (const [cx, cz, cr] of craters) {
@@ -429,9 +436,12 @@ function buildMoon(def: SceneDef, scene: THREE.Scene, renderer: THREE.WebGLRende
   const pos = groundGeo.attributes.position!;
   for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
   groundGeo.computeVertexNormals();
-  const ground = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({ map: reg.map, bumpMap: reg.bump, bumpScale: 2.5, roughness: 1, metalness: 0 }));
+  const groundMat = new THREE.MeshStandardMaterial({ map: reg.map, bumpMap: reg.bump, bumpScale: 2.5, roughness: 1, metalness: 0 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.receiveShadow = true;
   group.add(ground);
+  const impacts = new ImpactField(groundMat, 14, 20, 0.05);
+  group.add(impacts.mesh);
 
   // Scattered rocks.
   const rockGeo = new THREE.DodecahedronGeometry(1, 1);
@@ -466,8 +476,12 @@ function buildMoon(def: SceneDef, scene: THREE.Scene, renderer: THREE.WebGLRende
     group,
     sun,
     surface: 'regolith',
-    dustColor: new THREE.Color(colors[1]),
-    update() {},
+    dustColor: new THREE.Color(colors[2]),
+    deform: (p, strength) => impacts.dent(p[0], p[2], strength),
+    reset: () => impacts.reset(),
+    update() {
+      impacts.flush();
+    },
     dispose() {
       disposeAll(group);
       env.dispose();

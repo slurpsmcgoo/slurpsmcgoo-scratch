@@ -15,7 +15,7 @@ import { scenario, type ScenarioName } from './debug/scenarios.ts';
 import { Stage } from './render/stage.ts';
 import { GameView, emptyOverlay } from './render/view.ts';
 import { createGame } from './sim/setup.ts';
-import type { GameState, Player, TeamId } from './types.ts';
+import type { GameState, Impact, Player, TeamId } from './types.ts';
 import { toast } from './ui/dom.ts';
 import { Hud } from './ui/hud.ts';
 import { Menu, type LobbyModel } from './ui/menu.ts';
@@ -203,9 +203,8 @@ export class App {
     ]);
     const ctl = new GameController(createGame(bots, { setting: this.settings.setting }), `demo-${this.clientId}`);
     this.stage.setSetting(this.settings.setting);
-    const view = new GameView(this.stage, ctl, (e) => {
-      if (e.impact.strength > 0.8) this.stage.dust.puff(e.impact.p, e.impact.strength, this.stage.env!.surface);
-    }, false);
+    this.stage.env?.reset?.();
+    const view = new GameView(this.stage, ctl, (e) => this.impactEffects(e.impact), false);
     view.setPaint(this.settings.kubbPaint);
     this.demo = { ctl, view };
   }
@@ -222,10 +221,10 @@ export class App {
     this.ctl = ctl;
     this.stage.setSetting(ctl.state.setting);
     this.sound.setSurface(sceneDef(ctl.state.setting).surface);
+    this.stage.env?.reset?.();
     this.view = new GameView(this.stage, ctl, (e) => {
       this.sound.impact(e.impact);
-      if (e.impact.strength > 0.8) this.stage.dust.puff(e.impact.p, e.impact.strength, this.stage.env!.surface);
-      if (e.impact.strength > 0.6) this.stage.env?.bubbles?.(e.impact.p, Math.min(20, Math.ceil(e.impact.strength * 4)));
+      this.impactEffects(e.impact);
     });
     this.view.setPaint(this.settings.kubbPaint);
     this.unsub = ctl.on((e) => this.onGameEvent(e));
@@ -233,6 +232,22 @@ export class App {
     this.menu.hide();
     this.hud.show(true);
     this.hud.hideGameOver();
+  }
+
+  /** Dust, bubbles and lasting dents for a hard contact. */
+  private impactEffects(impact: Impact): void {
+    const env = this.stage.env;
+    if (!env) return;
+    const ground = impact.surface === 'grass' && impact.p[1] < 0.2;
+    if (env.surface === 'regolith') {
+      // On the Moon only ground hits throw up regolith, and every one leaves a mark.
+      if (!ground) return;
+      if (impact.strength > 0.5) this.stage.dust.puff(impact.p, impact.strength, env.surface);
+      env.deform?.(impact.p, impact.strength);
+      return;
+    }
+    if (impact.strength > 0.8) this.stage.dust.puff(impact.p, impact.strength, env.surface);
+    if (impact.strength > 0.6) env.bubbles?.(impact.p, Math.min(20, Math.ceil(impact.strength * 4)));
   }
 
   private onGameEvent(e: ControllerEvent): void {
