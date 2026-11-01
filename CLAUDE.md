@@ -6,6 +6,7 @@ A scratch monorepo. Each top-level folder is an independent project with its own
 ## Projects
 
 - `halloween/` — rear-projected Halloween window show (TypeScript, Vite, MediaPipe).
+- `kubb_game/` — 3D physics kubb in the browser: teams, bots, online play, park and Moon (TypeScript, Vite, Three.js, Rapier, PeerJS).
 
 ## Rules for agents
 

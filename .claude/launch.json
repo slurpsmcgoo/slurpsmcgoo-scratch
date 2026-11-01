@@ -6,6 +6,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "halloween", "run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "kubb-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "kubb_game", "run", "dev"],
+      "port": 5174
+    },
+    {
+      "name": "kubb-preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "kubb_game", "run", "preview", "--", "--port", "4174"],
+      "port": 4174
     }
   ]
 }
