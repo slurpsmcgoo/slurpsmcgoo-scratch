@@ -83,3 +83,14 @@ export function spectralFlux(prev: Float32Array, cur: Float32Array, binHz: numbe
   }
   return weight ? sum / weight : 0;
 }
+
+/**
+ * The audio input whose name contains `wanted` (case-insensitive), such as
+ * "BlackHole" for a loopback device carrying the computer's own sound. Null
+ * when nothing is wanted or nothing matches.
+ */
+export function pickInput<T extends { kind: string; label: string }>(devices: readonly T[], wanted: string): T | null {
+  const w = wanted.trim().toLowerCase();
+  if (!w) return null;
+  return devices.find((d) => d.kind === 'audioinput' && d.label.toLowerCase().includes(w)) ?? null;
+}

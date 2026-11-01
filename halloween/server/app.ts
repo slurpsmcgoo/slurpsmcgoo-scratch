@@ -250,13 +250,18 @@ export function createShowServer(opts: ShowServerOptions) {
         const a = body.activeArea;
         const num = (v: unknown, lo: number, hi: number) => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
         const areaOk = a === null || (typeof a === 'object' && num(a.cx, -1, 2) && num(a.cy, -1, 2) && num(a.height, 0.05, 3));
-        if (!areaOk || typeof body.ignoreOutsideArea !== 'boolean' || typeof body.cropToArea !== 'boolean') {
-          return send(res, 400, 'expected { activeArea: null | { cx, cy, height }, ignoreOutsideArea: boolean, cropToArea: boolean }');
+        const z = body.ignoreZones;
+        const zoneOk = (r: { x: unknown; y: unknown; w: unknown; h: unknown }) =>
+          typeof r === 'object' && r !== null && num(r.x, -1, 2) && num(r.y, -1, 2) && num(r.w, 0.001, 3) && num(r.h, 0.001, 3);
+        const zonesOk = z === undefined || (Array.isArray(z) && z.length <= 32 && z.every(zoneOk));
+        if (!areaOk || !zonesOk || typeof body.ignoreOutsideArea !== 'boolean' || typeof body.cropToArea !== 'boolean') {
+          return send(res, 400, 'expected { activeArea: null | { cx, cy, height }, ignoreOutsideArea: boolean, cropToArea: boolean, ignoreZones?: up to 32 { x, y, w, h } }');
         }
         const cfg = JSON.parse(await readConfigText());
         cfg.perception.activeArea = a === null ? null : { cx: a.cx, cy: a.cy, height: a.height };
         cfg.perception.ignoreOutsideArea = body.ignoreOutsideArea;
         cfg.perception.cropToArea = body.cropToArea;
+        if (z !== undefined) cfg.perception.ignoreZones = z.map((r: { x: number; y: number; w: number; h: number }) => ({ x: r.x, y: r.y, w: r.w, h: r.h }));
         await fsp.writeFile(configPath, formatJson(cfg) + '\n');
         serverLog('saved camera active area to config/show.json');
         return send(res, 200, 'ok');

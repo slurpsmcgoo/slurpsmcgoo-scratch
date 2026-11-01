@@ -84,6 +84,11 @@ export class LiveSource implements PerceptionSource {
     return this.audio.beatTracker;
   }
 
+  /** What the beat tracker is listening to. */
+  get musicInput(): string {
+    return this.audio.musicInput;
+  }
+
   get poseStats(): PoseStats {
     return this.pose.stats;
   }

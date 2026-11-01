@@ -2,7 +2,7 @@
 // this module only describes its shape and checks it on load.
 
 import type { Zone } from './types.ts';
-import type { ActiveArea } from './perception/geometry.ts';
+import type { ActiveArea, AreaRect } from './perception/geometry.ts';
 
 export type Pt = [number, number];
 export type Orientation = 'landscape' | 'portrait';
@@ -46,6 +46,8 @@ export interface ShowConfig {
     ignoreOutsideArea: boolean;    // drop people whose hips are outside the active area
     cropToArea: boolean;           // run the pose model on just the area (plus cropMargin), for more pixels per person
     cropMargin: number;            // extra around the area, as a fraction of its size, so people at its edge stay whole
+    ignoreZones?: AreaRect[];      // boxes on the full camera picture (visitor view, 0..1) where false people are dropped (key A, then Z and drag)
+    ignoreZoneOverlap?: number;    // drop a detection when this much of its body box is inside a zone
     minBodyHeight: number;
     minConfidence: number;
     minDistanceM: number;
@@ -81,6 +83,7 @@ export interface ShowConfig {
   };
   music: {
     enabled: boolean;
+    inputDevice?: string; // part of an audio input's name (e.g. "BlackHole") to beat-track instead of the microphone; "" = the microphone
     fluxMaxHz: number;    // spectral flux (the beat tracker's onset signal) up to this frequency
     fluxBassHz: number;   // bins below this count double
     fluxLowMaxHz: number; // the low-end flux that places the beat (kick, bass, snare body) stops here
@@ -187,6 +190,9 @@ export function validateConfig(raw: unknown): string[] {
   if (!(c.zones.nearM < c.zones.midM)) problems.push('zones.nearM must be less than zones.midM');
   if (c.geometry.calibrationMarks.length < 1) problems.push('geometry.calibrationMarks needs at least one mark');
   if (!(c.director.scareDelayMinS <= c.director.scareDelayMaxS)) problems.push('director.scareDelayMinS > scareDelayMaxS');
+  const zones = c.perception.ignoreZones;
+  const zoneOk = (z: AreaRect) => typeof z === 'object' && z !== null && [z.x, z.y, z.w, z.h].every(Number.isFinite) && z.w > 0 && z.h > 0;
+  if (zones !== undefined && !(Array.isArray(zones) && zones.every(zoneOk))) problems.push('perception.ignoreZones must be a list of { x, y, w, h } boxes');
   if (!Array.isArray(c.show.playlist) || c.show.playlist.length === 0) problems.push('show.playlist is empty');
   return problems;
 }

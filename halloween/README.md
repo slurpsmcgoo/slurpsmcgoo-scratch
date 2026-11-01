@@ -107,6 +107,7 @@ Replay a recorded log with `?source=replay&log=<name>`. `/api/logs` lists the lo
 - `P`: run the pose model on just the box plus a margin (the dashed line; on by default). The model never sees what's outside it, and people inside get more pixels, so smaller or farther people are found more reliably.
 - `R` resets to the largest centered box. `A` or `Enter` saves to `show.json`; `Esc` leaves without saving.
 - Distances and zones still use the full camera picture, so the tape-mark calibration below doesn't change.
+- **Ignore zones (a parked motorcycle, a statue, anything taken for a person):** press `Z`, then drag a red box over it (Shift+drag also works without `Z`). Anything that sits mostly inside a zone (`perception.ignoreZoneOverlap`, 80% of its body) is never taken for a person; a real person walking in front of it is bigger than the box and still counts, so draw the box snugly around the object. `Delete` removes the zone under the pointer (or the newest), `X` removes them all. Zones are saved with the box and show in red on the overlay's camera thumbnail.
 
 **Translucent screen (shower curtain):** press `T` for high-contrast mode: everyone is a pure-white skeleton with thicker bones, with no glow, disco ball or lasers (any haze spreads through a thin curtain and washes out the bones). `T` lasts until reload; set `scenes.skeletonMirror.highContrast` to `true` in `show.json` to keep it, and `contrastBoneScale` to change the bone thickness.
 
@@ -137,6 +138,12 @@ Everything below needs your camera, projector, street or phone. None of it could
   - If clarity sits in the red or yellow with music playing, the mic isn't hearing the beat well. Move it closer to the speaker, or lower `music.clarityOn` / `music.clarityKeep` a little (talking alone measured 0.24 at most in testing).
   - If the lasers hit visibly early or late, adjust `music.leadMs` (higher fires earlier). It starts at 50 ms to cover drawing and projector delay.
   - If it still misbehaves, press `R` during a song for 30 s and send me the log from `logs/`. It now includes the tracker's onset signal (numbers only, no audio).
+- [ ] **Music from this computer instead of the mic (optional, steadiest beat lock).** When the music plays from this Mac, the beat tracker can listen to the sound directly, with no street noise or talking. The microphone still hears shouts.
+  1. Install a loopback audio device, such as the free [BlackHole 2ch](https://existential.audio/blackhole/). It's macOS audio software you install yourself; it isn't part of this project.
+  2. In **Audio MIDI Setup**, create a **Multi-Output Device** with your speakers (or porch speaker) and BlackHole 2ch. Make it the Mac's sound output, so you hear the music and BlackHole carries a copy. macOS has no volume control on a Multi-Output Device, so set the volume in the music app or on the speaker.
+  3. Set `music.inputDevice` to `"BlackHole"` in `show.json` (part of the input's name is enough). It applies live.
+  4. With the overlay on (`D`), the `music input` line names the device. If it says `not found`, the tracker is using the microphone and keeps looking, so plugging in or installing it later works without a reload.
+  - A Bluetooth speaker plays well after the Mac does, so the lasers may fire early: lower `music.leadMs` (it can go negative).
   - Set `music.floorDb` / `music.fullDb` so the show's brightness follows the music's volume.
 - [ ] **Music vs. shouts:** check that starting a song, or a loud drop, doesn't count as a shout and set off a scare. If it does, raise `audio.shoutRiseDb` or set `director.scareOnShout` to false.
 - [ ] **Two or more people in Skeleton Mirror:** check the overlay's `pose ... fps` line stays near the camera rate (30) with several people dancing, and note `camera-to-result`.

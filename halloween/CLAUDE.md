@@ -22,7 +22,7 @@ Run from `halloween/`.
 ```
 config/show.json      every tunable number; pushed live to the page when it changes
 src/types.ts          the contract between modules; change deliberately
-src/sensors/          camera, audio (+ pure audioAnalysis: levels, shouts, spectral flux; beatTracker: tempo + phase by autocorrelation), sim (simulator, scenarios, replay, disco track), live (camera+pose+mic)
+src/sensors/          camera, audio (mic, plus an optional second input for music, music.inputDevice; pure audioAnalysis: levels, shouts, spectral flux; beatTracker: tempo + phase by autocorrelation), sim (simulator, scenarios, replay, disco track), live (camera+pose+mic)
 src/perception/       pose (main-thread side) + poseWorker (MediaPipe, in a Web Worker), tracker, oneEuro, geometry
 src/world/            audience (builds AudienceState), frame (PerceptionFrame = one tick = one log line),
                       motionPredictor (moves poses forward to each drawn frame)
@@ -45,7 +45,7 @@ tests/                vitest
 - **Scenes lay out from `sc.width` / `sc.height`,** never fixed pixel positions: the canvas is 1920x1080, or 1080x1920 in portrait (`output.orientation`), and scenes are re-initialized when it changes. `tests/sceneSmoke.test.ts` runs every scene both ways.
 - **Every frame starts pure black.** Any pixel not deliberately lit is `#000000`.
 - **Coordinates are visitor view:** x = 0 is the window's left edge as a visitor sees it. Perception flips camera x; nothing downstream flips again.
-- **People reach scenes relative to the camera's active area** (`perception.activeArea`, key A): `Person.x` and landmarks are 0..1 across the area, which always has the window's proportions, so scenes map them straight to `sc.width`/`sc.height`. Distances and zones are computed from the full camera picture first. `AudienceState.cameraArea` says where the area is, for drawing on the camera image (overlay, helper).
+- **People reach scenes relative to the camera's active area** (`perception.activeArea`, key A): `Person.x` and landmarks are 0..1 across the area, which always has the window's proportions, so scenes map them straight to `sc.width`/`sc.height`. Distances and zones are computed from the full camera picture first. `AudienceState.cameraArea` says where the area is, for drawing on the camera image (overlay, helper). `perception.ignoreZones` are in full-camera coordinates and are applied in `AudienceBuilder.sanitize`, before tracking. Tests load `show.json` through `tests/helpers.ts`, which resets the show-night framing (active area, ignore zones), so tests don't depend on where the camera points.
 - **Never write camera images or video to disk** unless `recorder.recordVideo` is true (development only). Logs are numbers only.
 - **The page talks only to its own server.** `index.html` sets a Content-Security-Policy with `connect-src 'self'`; it also blocks MediaPipe's built-in usage telemetry. Don't loosen it. Workers don't inherit the page's CSP: the server sends `WORKER_CSP` with the pose worker script (`server/app.ts`), so keep that header if the worker is renamed.
 - **Pose runs off the main thread.** `PoseModel` sends one downscaled frame at a time to `poseWorker.ts` and drops frames while it is busy; never call the model synchronously from the render loop. Extra workers don't help on a GPU (it runs one model at a time; measured), so `poseWorkers` defaults to 1. In dev, `vite.config.ts` serves MediaPipe's WASM loader from `public/` for the worker's `import()`.

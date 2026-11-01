@@ -8,8 +8,13 @@ import { NO_MUSIC } from '../src/world/frame.ts';
 
 export const ROOT = path.resolve(import.meta.dirname, '..');
 
+/**
+ * show.json, minus the camera framing saved on show night (active area, ignore
+ * zones), so tests don't depend on where the camera happens to point.
+ */
 export function loadConfig(): ShowConfig {
-  return JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'show.json'), 'utf8')) as ShowConfig;
+  const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'show.json'), 'utf8')) as ShowConfig;
+  return { ...cfg, perception: { ...cfg.perception, activeArea: null, ignoreZones: [] } };
 }
 
 export function person(id: number, distanceM: number, zone: Zone, x = 0.5): Person {

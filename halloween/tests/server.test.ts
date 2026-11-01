@@ -114,6 +114,12 @@ describe('show server', () => {
     expect(saved.perception.activeArea).toEqual(body.activeArea);
     expect(saved.perception.ignoreOutsideArea).toBe(false);
     expect(saved.perception.cameraWidth).toBeDefined(); // the rest is intact
+
+    const zones = [{ x: 0.6, y: 0.5, w: 0.2, h: 0.15 }];
+    const badZone = await fetch(`${base}/api/config/active-area`, { method: 'PUT', body: JSON.stringify({ ...body, ignoreZones: [{ x: 0, y: 0, w: -1, h: 1 }] }) });
+    expect(badZone.status).toBe(400);
+    expect((await fetch(`${base}/api/config/active-area`, { method: 'PUT', body: JSON.stringify({ ...body, ignoreZones: zones }) })).status).toBe(200);
+    expect(JSON.parse(fs.readFileSync(path.join(tmp, 'config', 'show.json'), 'utf8')).perception.ignoreZones).toEqual(zones);
   });
 
   it('saves calibration into show.json and pushes the change to the page', async () => {

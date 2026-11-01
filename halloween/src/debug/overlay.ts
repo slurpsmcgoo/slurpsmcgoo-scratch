@@ -23,6 +23,7 @@ export interface OverlayInfo {
   outputMode: string;
   pose: PoseStats | null;
   beat: BeatTracker | null;
+  musicInput: string | null; // what the beat tracker listens to (live only)
   ambient: { on: boolean; liveliness: number };
   disabledScenes: string[];
   audience: AudienceState;
@@ -103,6 +104,7 @@ export class Overlay {
       [a.music.playing
         ? `music  playing ${a.music.bpm.toFixed(1)} bpm   beat ${a.music.beat}${a.music.phase < 0.15 ? ' *' : ''}   energy ${'#'.repeat(Math.round(a.music.energy * 10)).padEnd(10, '.')}`
         : 'music  -', a.music.playing ? '#ff7be5' : undefined],
+      ...(i.musicInput ? [[`music input  ${i.musicInput}`, i.musicInput.includes('not found') ? '#ffb84f' : undefined] as [string, string?]] : []),
       [`ambient ${i.ambient.on ? 'on' : 'off'}   liveliness ${'#'.repeat(Math.round(i.ambient.liveliness * 10)).padEnd(10, '.')}`],
       [`intensity ${i.director.intensity}   sensitivity ${i.sensitivity >= 0 ? '+' : ''}${i.sensitivity}${i.paused ? '   PAUSED' : ''}${i.blackout ? '   BLACKOUT' : ''}${i.recording ? '   REC' : ''}`],
       [`server ${i.serverConnected ? 'connected' : 'not connected'}`, i.serverConnected ? undefined : '#ff6b6b'],
@@ -273,6 +275,14 @@ export class Overlay {
     ctx.setLineDash([5, 4]);
     ctx.lineWidth = 1.5;
     ctx.strokeRect(x0 + area.x * tw, y0 + area.y * th, area.w * tw, area.h * th);
+    // Ignore zones (drawn in the A helper with Z).
+    ctx.setLineDash([]);
+    for (const z of i.cfg.perception.ignoreZones ?? []) {
+      ctx.fillStyle = 'rgba(255,60,60,0.25)';
+      ctx.fillRect(x0 + z.x * tw, y0 + z.y * th, z.w * tw, z.h * th);
+      ctx.strokeStyle = '#ff5050';
+      ctx.strokeRect(x0 + z.x * tw, y0 + z.y * th, z.w * tw, z.h * th);
+    }
     ctx.restore();
     ctx.strokeStyle = 'rgba(255,255,255,0.35)';
     ctx.lineWidth = 1;

@@ -34,13 +34,15 @@
     "maxPredictMs": 90,
     "cameraFeedMirrored": false,
     "activeArea": {
-      "cx": 0.4732893087741885,
-      "cy": 0.5221159098002497,
-      "height": 0.7588658707865167
+      "cx": 0.46209419621956943,
+      "cy": 0.47825898778870163,
+      "height": 0.7102511021379525
     },
     "ignoreOutsideArea": true,
     "cropToArea": true,
     "cropMargin": 0.15,
+    "ignoreZones": [],
+    "ignoreZoneOverlap": 0.8,
     "minBodyHeight": 0.08,
     "minConfidence": 0.3,
     "minDistanceM": 0.3,
@@ -87,6 +89,7 @@
   },
   "music": {
     "enabled": true,
+    "inputDevice": "BlackHole",
     "fluxMaxHz": 6000,
     "fluxBassHz": 200,
     "fluxLowMaxHz": 300,

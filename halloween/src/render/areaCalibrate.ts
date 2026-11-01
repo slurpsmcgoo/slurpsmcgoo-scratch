@@ -9,6 +9,9 @@
 //   I                        ignore people standing outside the box
 //   P                        run the pose model on just the box (plus a margin)
 //   R                        reset to the largest centered box
+//   Z, then drag (or Shift+drag)  draw an ignore zone: anything that fits mostly
+//                            inside it (a parked motorcycle) is never taken for a person
+//   Delete / Backspace       remove the zone under the pointer (or the newest);  X  remove all
 //   A or Enter               save to show.json;  Esc  leave without saving
 //
 // Changes apply live while you drag, so the window shows the result at once.
@@ -22,6 +25,7 @@ export interface AreaSettings {
   activeArea: ActiveArea | null;
   ignoreOutsideArea: boolean;
   cropToArea: boolean;
+  ignoreZones: AreaRect[];
 }
 
 interface Inputs {
@@ -43,7 +47,10 @@ export class AreaCalibrator {
   active = false;
   private work: AreaSettings | null = null;
   private saved: AreaSettings | null = null;
-  private drag: { kind: 'move'; dx: number; dy: number } | { kind: 'resize'; ax: number; ay: number } | null = null;
+  private drag: { kind: 'move'; dx: number; dy: number } | { kind: 'resize'; ax: number; ay: number } | { kind: 'zone'; x0: number; y0: number } | null = null;
+  private draft: AreaRect | null = null; // the ignore zone being drawn
+  private pointer: [number, number] = [-1, -1];
+  private zoneMode = false; // Z: drags draw ignore zones instead of moving the box
   private ctx: CanvasRenderingContext2D;
   private status = '';
 
@@ -55,7 +62,7 @@ export class AreaCalibrator {
     this.ctx = canvas.getContext('2d')!;
     canvas.addEventListener('pointerdown', (e) => this.down(e));
     canvas.addEventListener('pointermove', (e) => this.move(e));
-    canvas.addEventListener('pointerup', () => (this.drag = null));
+    canvas.addEventListener('pointerup', () => this.up());
     canvas.addEventListener('wheel', (e) => this.wheel(e), { passive: false });
   }
 
@@ -66,9 +73,15 @@ export class AreaCalibrator {
 
   private enter(): void {
     const p = this.inputs().cfg.perception;
-    this.saved = { activeArea: p.activeArea ? { ...p.activeArea } : null, ignoreOutsideArea: p.ignoreOutsideArea, cropToArea: p.cropToArea };
+    this.saved = {
+      activeArea: p.activeArea ? { ...p.activeArea } : null,
+      ignoreOutsideArea: p.ignoreOutsideArea,
+      cropToArea: p.cropToArea,
+      ignoreZones: (p.ignoreZones ?? []).map((z) => ({ ...z })),
+    };
     this.work = { ...this.saved, activeArea: this.current() };
     this.active = true;
+    this.zoneMode = false;
     this.status = '';
   }
 
@@ -142,6 +155,11 @@ export class AreaCalibrator {
   private down(e: PointerEvent): void {
     if (!this.active) return;
     const [x, y] = this.toCam(e);
+    if (e.shiftKey || this.zoneMode) {
+      this.drag = { kind: 'zone', x0: x, y0: y };
+      this.draft = { x, y, w: 0, h: 0 };
+      return;
+    }
     const r = this.rect();
     const v = this.view();
     const near = 18 / v.w;
@@ -157,8 +175,15 @@ export class AreaCalibrator {
   }
 
   private move(e: PointerEvent): void {
-    if (!this.active || !this.drag) return;
+    if (!this.active) return;
     const [x, y] = this.toCam(e);
+    this.pointer = [x, y];
+    if (!this.drag) return;
+    if (this.drag.kind === 'zone') {
+      const { x0, y0 } = this.drag;
+      this.draft = { x: Math.min(x0, x), y: Math.min(y0, y), w: Math.abs(x - x0), h: Math.abs(y - y0) };
+      return;
+    }
     if (this.drag.kind === 'move') {
       this.set({ ...this.current(), cx: x + this.drag.dx, cy: y + this.drag.dy });
       return;
@@ -172,6 +197,24 @@ export class AreaCalibrator {
     const sx = x >= ax ? 1 : -1;
     const sy = y >= ay ? 1 : -1;
     this.set({ cx: ax + (sx * ww) / 2, cy: ay + (sy * hh) / 2, height: hh });
+  }
+
+  private up(): void {
+    const d = this.draft;
+    this.drag = null;
+    this.draft = null;
+    if (!this.active || !this.work || !d) return;
+    // Keep the zone on the camera picture; ignore stray clicks.
+    const x0 = Math.max(0, d.x), y0 = Math.max(0, d.y);
+    const x1 = Math.min(1, d.x + d.w), y1 = Math.min(1, d.y + d.h);
+    if (x1 - x0 < 0.01 || y1 - y0 < 0.01) return;
+    this.setZones([...this.work.ignoreZones, { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }]);
+  }
+
+  private setZones(zones: AreaRect[]): void {
+    if (!this.work) return;
+    this.work = { ...this.work, ignoreZones: zones };
+    this.apply(this.work);
   }
 
   private wheel(e: WheelEvent): void {
@@ -198,7 +241,15 @@ export class AreaCalibrator {
     } else if (k === 'p' || k === 'P') {
       this.work = { ...this.work, cropToArea: !this.work.cropToArea };
       this.apply(this.work);
-    } else if (k === 'ArrowLeft') this.set({ ...a, cx: a.cx - step });
+    } else if (k === 'Delete' || k === 'Backspace') {
+      const zones = this.work.ignoreZones;
+      const [px, py] = this.pointer;
+      let i = zones.findLastIndex((z) => px >= z.x && px <= z.x + z.w && py >= z.y && py <= z.y + z.h);
+      if (i < 0) i = zones.length - 1;
+      if (i >= 0) this.setZones(zones.filter((_, j) => j !== i));
+    } else if (k === 'x' || k === 'X') this.setZones([]);
+    else if (k === 'z' || k === 'Z') this.zoneMode = !this.zoneMode;
+    else if (k === 'ArrowLeft') this.set({ ...a, cx: a.cx - step });
     else if (k === 'ArrowRight') this.set({ ...a, cx: a.cx + step });
     else if (k === 'ArrowUp') this.set({ ...a, cy: a.cy - step });
     else if (k === 'ArrowDown') this.set({ ...a, cy: a.cy + step });
@@ -273,6 +324,26 @@ export class AreaCalibrator {
     ctx.rect(bx, by, bw, bh);
     ctx.fill('evenodd');
 
+    // Ignore zones, on top of the dimming so they read wherever they are.
+    const zoneRect = (z: AreaRect) => [sx(z.x), sy(z.y), z.w * v.w, z.h * v.h] as const;
+    for (const z of this.work.ignoreZones) {
+      const [zx, zy, zw, zh] = zoneRect(z);
+      ctx.fillStyle = 'rgba(255,60,60,0.25)';
+      ctx.fillRect(zx, zy, zw, zh);
+      ctx.strokeStyle = '#ff5050';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(zx, zy, zw, zh);
+      this.text('ignored', zx + 6, zy + 18, '#ff8080', 14);
+    }
+    if (this.draft) {
+      const [zx, zy, zw, zh] = zoneRect(this.draft);
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = '#ff5050';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(zx, zy, zw, zh);
+      ctx.setLineDash([]);
+    }
+
     // The box, with its margin for the pose model.
     if (this.work.cropToArea) {
       const m = cfg.perception.cropMargin;
@@ -291,7 +362,7 @@ export class AreaCalibrator {
 
     const pct = Math.round(Math.min(1, r.w) * Math.min(1, r.h) * 100);
     this.text('CAMERA ACTIVE AREA   drag to move · drag a corner or scroll to resize · arrows nudge · +/- size', 24, 32, '#fff', 18);
-    this.text('A or Enter save · Esc cancel · R reset', 24, 56, '#bbb', 15);
+    this.text(`A or Enter save · Esc cancel · R reset   ·   Z draw ignore zones: ${this.zoneMode ? 'ON (drag to draw)' : 'off'} · Delete remove one · X remove all (${this.work.ignoreZones.length})`, 24, 56, this.zoneMode ? '#ff8080' : '#bbb', 15);
     const onOff = (b: boolean) => (b ? 'ON' : 'off');
     this.text(
       `box uses ${pct}% of the camera picture   ·   I  ignore people outside: ${onOff(this.work.ignoreOutsideArea)}   ·   P  model looks only here: ${onOff(this.work.cropToArea)}`,

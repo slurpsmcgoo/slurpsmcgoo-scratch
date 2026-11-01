@@ -164,3 +164,46 @@ export const toArea = (r: AreaRect, x: number, y: number): [number, number] => [
 
 /** Area coordinates → camera coordinates. */
 export const fromArea = (r: AreaRect, x: number, y: number): [number, number] => [r.x + x * r.w, r.y + y * r.h];
+
+// ---------------------------------------------------------------- ignore zones
+
+/**
+ * The box around a detection's visible landmarks, in full camera coordinates
+ * (visitor view). Null when too few landmarks are visible to say.
+ */
+export function bodyBox(lm: Landmark[], minVisibility = 0.3): AreaRect | null {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  let n = 0;
+  for (const p of lm) {
+    if (p.visibility < minVisibility) continue;
+    x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y);
+    x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y);
+    n++;
+  }
+  return n >= 3 ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : null;
+}
+
+/** How much of box `a` lies inside box `b`, 0..1 (by area; a zero-area box counts by its center). */
+export function fractionInside(a: AreaRect, b: AreaRect): number {
+  const ix = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+  const iy = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+  const area = a.w * a.h;
+  if (area <= 0) {
+    const cx = a.x + a.w / 2, cy = a.y + a.h / 2;
+    return cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h ? 1 : 0;
+  }
+  return (ix * iy) / area;
+}
+
+/**
+ * True when a detection sits mostly inside one of the ignore zones (at least
+ * `overlap` of its body box). Something that fits in a zone, like a parked
+ * motorcycle, is dropped; a real person walking in front of it is bigger than
+ * the zone and is kept.
+ */
+export function inIgnoreZone(lm: Landmark[], zones: readonly AreaRect[], overlap: number): boolean {
+  if (zones.length === 0) return false;
+  const box = bodyBox(lm);
+  if (!box) return false;
+  return zones.some((z) => fractionInside(box, z) >= overlap);
+}

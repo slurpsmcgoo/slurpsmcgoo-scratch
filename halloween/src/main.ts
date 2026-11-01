@@ -369,6 +369,7 @@ async function boot(): Promise<void> {
           outputMode: output.usingWebGl ? 'webgl' : '2d',
           pose: mode === 'live' ? liveSource?.poseStats ?? null : null,
           beat: mode === 'live' ? liveSource?.beatTracker ?? null : mode === 'sim' ? simWorld.beatTracker : null,
+          musicInput: mode === 'live' ? liveSource?.musicInput ?? null : null,
           ambient: { on: ambient.enabled, liveliness: ambient.liveliness },
           disabledScenes: playlist.disabledIds,
           audience: a,

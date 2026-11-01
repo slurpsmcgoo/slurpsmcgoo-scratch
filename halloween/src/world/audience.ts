@@ -5,7 +5,7 @@
 
 import type { ShowConfig } from '../config.ts';
 import type { AudienceEvent, AudienceState, Detection, Landmark, Person, Zone } from '../types.ts';
-import { areaRect, bodyHeight, estimateDistance, fitTilt, hipCenter, shoulderWidthAt, shoulderWidthNorm, zoneFor, type AreaRect } from '../perception/geometry.ts';
+import { areaRect, bodyHeight, inIgnoreZone, estimateDistance, fitTilt, hipCenter, shoulderWidthAt, shoulderWidthNorm, zoneFor, type AreaRect } from '../perception/geometry.ts';
 import { logicalSize } from '../config.ts';
 import { OneEuroFilter } from '../perception/oneEuro.ts';
 import { Tracker } from '../perception/tracker.ts';
@@ -77,7 +77,8 @@ export class AudienceBuilder {
 
   /**
    * Rejects detections that are tiny, at an impossible distance, beyond
-   * numPoses, or (with ignoreOutsideArea) standing outside the active area.
+   * numPoses, (with ignoreOutsideArea) standing outside the active area, or
+   * sitting mostly inside an ignore zone.
    */
   sanitize(detections: Detection[], area?: AreaRect): Detection[] {
     const p = this.cfg.perception;
@@ -86,9 +87,12 @@ export class AudienceBuilder {
       const h = hipCenter(d.landmarks);
       return h.x >= area.x && h.x <= area.x + area.w && h.y >= area.y && h.y <= area.y + area.h;
     };
+    const zones = p.ignoreZones ?? [];
+    const overlap = p.ignoreZoneOverlap ?? 0.8;
     return detections
       .filter((d) => d.landmarks.length === 33 && d.confidence >= p.minConfidence && bodyHeight(d.landmarks) >= p.minBodyHeight)
       .filter(inside)
+      .filter((d) => !inIgnoreZone(d.landmarks, zones, overlap))
       .filter((d) => {
         const est = estimateDistance(d.landmarks, this.cfg.geometry, this.tilt);
         return est !== null && est.distanceM >= p.minDistanceM && est.distanceM <= p.maxDistanceM;

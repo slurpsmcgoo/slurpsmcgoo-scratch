@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LevelTracker, rmsDb } from '../src/sensors/audioAnalysis.ts';
+import { LevelTracker, pickInput, rmsDb } from '../src/sensors/audioAnalysis.ts';
 import { envelope } from '../src/render/helpers.ts';
 import { loadConfig, seeded } from './helpers.ts';
 
@@ -68,5 +68,21 @@ describe('envelope follower (Sound Skull jaw)', () => {
     expect(v).toBeGreaterThan(0.8);
     for (let i = 0; i < 3; i++) v = envelope(v, 0, 1 / 60, 0.03, 0.15);
     expect(v).toBeGreaterThan(0.5);
+  });
+});
+
+describe('pickInput (music.inputDevice)', () => {
+  const devices = [
+    { kind: 'audioinput', label: 'MacBook Pro Microphone (Built-in)', deviceId: 'mic' },
+    { kind: 'audiooutput', label: 'BlackHole 2ch (Virtual)', deviceId: 'out' },
+    { kind: 'audioinput', label: 'BlackHole 2ch (Virtual)', deviceId: 'bh' },
+  ];
+  it('finds an input by part of its name, ignoring case and outputs', () => {
+    expect(pickInput(devices, 'blackhole')?.deviceId).toBe('bh');
+    expect(pickInput(devices, ' BlackHole ')?.deviceId).toBe('bh');
+  });
+  it('returns null when nothing is wanted or nothing matches', () => {
+    expect(pickInput(devices, '')).toBeNull();
+    expect(pickInput(devices, 'Loopback')).toBeNull();
   });
 });
