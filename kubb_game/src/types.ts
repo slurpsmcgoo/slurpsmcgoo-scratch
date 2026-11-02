@@ -107,7 +107,15 @@ export interface GameState {
   clock: number;
   /** Per player, the game minute of each can they opened. */
   drinks: Record<string, number[]>;
+  /** Settings with a soft surface: every dent made so far, in order. The ground is rebuilt from them. */
+  dents: Dent[];
 }
+
+/**
+ * A dent in soft ground, all integers so every peer rebuilds the same terrain:
+ * where it hit (x, z in mm), how the piece was moving just before (cm/s), and its mass (g).
+ */
+export type Dent = [x: number, z: number, vx: number, vy: number, vz: number, mass: number];
 
 /** A throw, fully determined: every peer simulates the same thing from it. */
 export interface ThrowIntent {
@@ -144,6 +152,8 @@ export interface SettledResult {
   /** The thrown object. */
   thrown: Pose;
   steps: number;
+  /** Dents made in soft ground during this throw. */
+  dents: Dent[];
 }
 
 /** A hard contact during a throw, for sound. */
@@ -152,4 +162,6 @@ export interface Impact {
   /** Change of speed, m/s. */
   strength: number;
   surface: 'wood' | 'grass';
+  /** The dent it left, when it hit soft ground hard enough. */
+  dent?: Dent;
 }

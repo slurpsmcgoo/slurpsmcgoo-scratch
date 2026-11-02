@@ -27,10 +27,12 @@ describe('network room', () => {
     expect(client.lobby?.players.length).toBe(2);
   });
 
-  it('host and client stay in sync through a whole game', async () => {
+  // The Moon's ground deforms, so it also checks that every peer digs the same craters.
+  it.each(['park', 'moon'])('host and client stay in sync through a whole game (%s)', async (setting) => {
     const net = memoryTransport();
-    const host = new RoomHost(await net.host('ROOM2'), 'h', 'Hosty');
-    const client = new RoomClient(await net.join('ROOM2'), 'c', 'Cleo');
+    const host = new RoomHost(await net.host(`ROOM2-${setting}`), 'h', 'Hosty');
+    host.setting = setting;
+    const client = new RoomClient(await net.join(`ROOM2-${setting}`), 'c', 'Cleo');
     let cctl: GameController | null = null;
     client.onStart = (c) => (cctl = c);
     await flush();
@@ -69,6 +71,7 @@ describe('network room', () => {
     expect(n).toBeGreaterThan(3);
     expect(hashState(c.state)).toBe(hashState(hctl.state));
     expect(desyncs).toBe(0);
+    if (setting === 'moon') expect(hctl.state.dents.length).toBeGreaterThan(0);
   });
 
   it('a peer joining mid-throw ends up with the host state', async () => {

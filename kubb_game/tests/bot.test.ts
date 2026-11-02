@@ -7,6 +7,7 @@ import { applyAction } from '../src/game/session.ts';
 import { createRng } from '../src/sim/rng.ts';
 import { currentActor, isUpright } from '../src/sim/rules.ts';
 import { createGame } from '../src/sim/setup.ts';
+import { groundAt } from '../src/sim/terrain.ts';
 import type { BotSkill, GameState } from '../src/types.ts';
 import { game, player, ready } from './helpers.ts';
 
@@ -51,7 +52,7 @@ describe('bots', () => {
     // Sanity: nothing ends up below the ground or flung far away.
     for (const p of s.pieces) {
       if (p.status === 'inHand') continue;
-      expect(p.p[1]).toBeGreaterThan(-0.01);
+      expect(p.p[1]).toBeGreaterThan(groundAt(s, p.p[0], p.p[2]) - 0.01);
       expect(Math.abs(p.p[0])).toBeLessThan(15);
     }
   });

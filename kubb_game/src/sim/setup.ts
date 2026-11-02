@@ -65,5 +65,6 @@ export function createGame(
     beer: opts.beer ?? false,
     clock: 0,
     drinks: {},
+    dents: [],
   };
 }

@@ -26,7 +26,7 @@ function result(s: GameState, opts: { fall?: string[]; move?: Record<string, Pos
     if (opts.fall?.includes(p.id)) pieces[p.id] = { p: [p.p[0], 0.035, p.p[2]], q: FALLEN };
   }
   Object.assign(pieces, opts.move ?? {});
-  return { pieces, batons: s.batons, thrown: opts.thrown ?? { p: [0, 0.022, 3], q: FALLEN }, steps: 1 };
+  return { pieces, batons: s.batons, thrown: opts.thrown ?? { p: [0, 0.022, 3], q: FALLEN }, steps: 1, dents: [] };
 }
 
 function baton(s: GameState, fall: string[] = []): GameState {

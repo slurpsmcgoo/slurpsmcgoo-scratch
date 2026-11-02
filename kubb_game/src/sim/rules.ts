@@ -4,8 +4,9 @@
 import { CFG, STANDING_COS } from '../config.ts';
 import type { Action, GameEvent, GameState, Piece, Player, Pose, SettledResult, TeamId, Vec3 } from '../types.ts';
 import { QUAT_IDENTITY, dist2xz, rotate, upY, yawQuat } from './math.ts';
-import { HALF_W, KING_HOME, KUBB, baselineZ, forward, inHalf, other, stakePositions } from './pitch.ts';
+import { HALF_W, KING, KING_HOME, KUBB, baselineZ, forward, inHalf, other, stakePositions } from './pitch.ts';
 import { batonsForTurn } from './setup.ts';
+import { groundAt } from './terrain.ts';
 
 export type Act = 'throwKubb' | 'throwBaton' | 'raise' | 'penalty' | 'practice';
 
@@ -168,17 +169,24 @@ export function raiseCandidates(k: Piece): [Vec3, Vec3] {
   return [clampIn(k.p[0] + axis[0] * off, k.p[2] + axis[1] * off), clampIn(k.p[0] - axis[0] * off, k.p[2] - axis[1] * off)];
 }
 
+/** Rest an upright piece on the ground under it (dented ground included), touching its highest point. */
+function standOnGround(s: GameState, p: Piece): void {
+  const size = p.kind === 'king' ? KING : KUBB;
+  p.p[1] = groundAt(s, p.p[0], p.p[2], size[0] / 2) + size[1] / 2;
+}
+
 /** Stand a piece back up: baseline kubbs and the king at home, field kubbs where they lie. */
-function reraise(p: Piece): void {
+function reraise(s: GameState, p: Piece): void {
   p.status = 'standing';
   if (p.role === 'baseline' || p.kind === 'king') {
     p.p = [...p.home];
     p.q = [...QUAT_IDENTITY];
-    return;
+  } else {
+    const axis = longAxisXZ(p);
+    p.p = [p.p[0], KUBB[1] / 2, p.p[2]];
+    p.q = axis ? yawQuat(axis[0], axis[1]) : [...QUAT_IDENTITY];
   }
-  const axis = longAxisXZ(p);
-  p.p = [p.p[0], KUBB[1] / 2, p.p[2]];
-  p.q = axis ? yawQuat(axis[0], axis[1]) : [...QUAT_IDENTITY];
+  standOnGround(s, p);
 }
 
 function advanceRotation(s: GameState, t: TeamId): void {
@@ -213,6 +221,7 @@ export function applyThrowResult(s0: GameState, a: Action & { type: 'throw' }, r
     }
   }
   s.batons = r.batons.map(clonePose);
+  if (r.dents.length) s.dents = [...(s.dents ?? []), ...r.dents];
   if (it.kind === 'baton') s.batons.push(clonePose(r.thrown));
   const fell = s.pieces.filter((p) => wasStanding.has(p.id) && !isUpright(p));
 
@@ -245,6 +254,7 @@ function practiceResult(s: GameState, a: Action & { type: 'throw' }, r: SettledR
       k.p = c;
       k.q = axis ? yawQuat(axis[0], axis[1]) : [...QUAT_IDENTITY];
       k.status = 'standing';
+      standOnGround(s, k);
       s.pieces.push(k);
       event(s, { type: 'landed', text: 'In!' });
     } else {
@@ -256,7 +266,7 @@ function practiceResult(s: GameState, a: Action & { type: 'throw' }, r: SettledR
   if (s.batonsLeft <= 0) {
     s.batonsLeft = CFG.rules.batonsPerTurn;
     s.batons = [];
-    for (const p of s.pieces) if (p.status === 'down') reraise(p);
+    for (const p of s.pieces) if (p.status === 'down') reraise(s, p);
     event(s, { type: 'turn', text: 'Batons collected' });
   }
 }
@@ -267,7 +277,7 @@ function kubbThrowResult(s: GameState, a: Action & { type: 'throw' }, r: Settled
   const k = s.pieces.find((p) => p.id === a.intent.kubbId)!;
   k.p = [...r.thrown.p];
   k.q = [...r.thrown.q];
-  for (const p of fell) if (p !== k) reraise(p);
+  for (const p of fell) if (p !== k) reraise(s, p);
   if (fell.some((p) => p !== k)) event(s, { type: 'reraised', text: 'Knocked kubbs stood back up' });
 
   if (inHalf(O, k.p[0], k.p[2])) {
@@ -319,14 +329,14 @@ function batonResult(s0: GameState, s: GameState, fell: Piece[]): void {
       knocked++;
     } else if (p.side === O && p.role === 'baseline') {
       if (CFG.rules.baselineBeforeFieldPenalty && fieldLeft) {
-        reraise(p);
+        reraise(s, p);
         event(s, { type: 'baselinePenalty', text: 'Field kubbs first — baseline kubb stood back up', team: T });
       } else {
         p.status = 'down';
         knocked++;
       }
     } else {
-      reraise(p);
+      reraise(s, p);
     }
   }
   if (knocked) event(s, { type: 'knocked', text: knocked === 1 ? 'Kubb down!' : `${knocked} kubbs down!`, team: T });
@@ -385,6 +395,7 @@ export function applyPlace(s0: GameState, a: Action & { type: 'raise' | 'placePe
     } else {
       k.p = c;
       k.q = axis ? yawQuat(axis[0], axis[1]) : [...QUAT_IDENTITY];
+      standOnGround(s, k);
       event(s, { type: 'raised', text: 'Raised' });
     }
     k.status = 'standing';
@@ -393,6 +404,7 @@ export function applyPlace(s0: GameState, a: Action & { type: 'raise' | 'placePe
   } else {
     k.p = [a.x, KUBB[1] / 2, a.z];
     k.q = [...QUAT_IDENTITY];
+    standOnGround(s, k);
     k.status = 'standing';
     k.role = 'field';
     k.side = other(s.turn);

@@ -143,6 +143,7 @@ export class GameView {
     this.group.add(this.advLine);
 
     this.syncAvatars();
+    stage.env?.syncGround?.(ctl.state.dents ?? []);
     this.unsub = ctl.on((e) => this.onEvent(e));
   }
 
@@ -189,6 +190,7 @@ export class GameView {
   }
 
   private onEvent(e: ControllerEvent): void {
+    if (e.type === 'applied' || e.type === 'replaced') this.stage.env?.syncGround?.(e.state.dents ?? []);
     if (e.type === 'applied' && e.action.type === 'drink') {
       this.avatars.get(e.action.player)?.drinkNow();
     } else if (e.type === 'throwStart') {

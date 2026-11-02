@@ -43,6 +43,8 @@ A setting (`config/kubb.json` → `scenes`) is both a look and a physics overrid
 
 The ocean floor folds buoyancy into a lower gravity (4.5 m/s², as if the pieces were weighted wood) and adds quadratic water drag (`dv = −k|v|v dt`), applied by the sim each step; the throw maths integrates the same drag, so aiming stays honest. Throws need a little more push and drop steeply at the end.
 
+The Moon's ground also **deforms** (`physics.deformable`, `src/sim/terrain.ts`). Over the 14 m × 20 m playing area the ground is a 5 cm height grid. Every hard ground hit in the sim records a dent in integers: where it hit, the piece's velocity just before, and its mass. The dent digs a bowl with a raised rim, stretched along the direction of travel (a shallow skid leaves a long scrape, a steep drop a round pit) with more rim thrown out ahead. Dents add up, so hitting the same spot deepens and widens the hole. After each dent the regolith slumps until no slope is steeper than `terrain.maxSlope` (16°, so a kubb can always stand), and the depth is floored at 8 cm. `GameState.dents` lists every dent in order, and the grid is a pure function of that list, so every peer has the same ground; consecutive throws only apply the new dents (a cache checked entry by entry). `ThrowSim` collides with it as a Rapier heightfield sampled every 10 cm, ringed by flat cuboids. Finer would cost more than it adds: box-on-heightfield contacts are several times dearer than box-on-cuboid. Dents are dug mid-throw and the heightfield is rebuilt on the next step, so pieces nearby drop into a fresh crater. Hits are classified as ground from the piece's lowest point against the terrain, because a fast body's hit is resolved by continuous collision detection, which can leave no contact to inspect. The rules stand raised, re-raised and penalty kubbs on the highest ground under their footprint.
+
 All settings have a soft-ground landing loss: a piece coming down onto the ground keeps only part of its forward and spin speed (`landingKeep`), so thrown kubbs roll about half a metre, not two.
 
 ### Rules implemented (US national / world championship style)
@@ -77,7 +79,7 @@ Kubb is turn-based, so only one player acts at a time. That makes the network si
 Three.js, PBR materials, `ACESFilmic` tone mapping, soft sun shadows. Wood, bark, lawn, regolith and Earth textures are drawn on canvases at start-up.
 
 - **Park:** Three's physical sky model, also prefiltered into the environment lighting; a lawn with large-scale patchiness and mowing stripes (shader); instanced grass blades swaying in a vertex shader; trees built from displaced spheres.
-- **Moon:** black sky with stars, the sun's disc, the Earth (lit by the same sun, with an atmosphere rim); cratered regolith terrain that is flat where the game is played; rocks; a lunar module in the distance. Ground impacts throw up a big plume of regolith, an ejecta cone plus a dense core, flying in clean ballistic arcs with no air to slow it, then settling where it lands. Each one also dents a fine height grid laid over the playing area (`render/impacts.ts`): a small crater with a raised rim and darker disturbed regolith that lasts the whole game. The dents are visual only; the physics ground stays flat, which keeps throws deterministic and fair.
+- **Moon:** black sky with stars, the sun's disc, the Earth (lit by the same sun, with an atmosphere rim); cratered regolith terrain that is flat where the game is played; rocks; a lunar module in the distance. Ground impacts throw up a big plume of regolith, an ejecta cone plus a dense core, flying in clean ballistic arcs with no air to slow it, then settling where it lands. Hard hits dig real craters (see *Settings and their physics*). `render/impacts.ts` draws the same terrain grid at full 5 cm resolution, darker in the bowls and brighter on the rims. It applies each dent the moment the impact event arrives, then reconciles with `GameState.dents` after every action, so a late joiner or a resync draws exactly the ground everyone else plays on. The pitch's chalk lines are still flat and float over a crater.
 
 A computer-vs-computer game plays behind the menu.
 
@@ -87,7 +89,7 @@ Quality tiers (low, medium, high) set pixel ratio, shadow map size and grass den
 
 ### Audio: `src/audio/`
 
-Synthesised with Web Audio: wood-on-wood clacks (modal sine partials plus a noise burst), thuds on grass, the whoosh of a throw, birds and wind for the park. On the Moon there's no air, so only muffled thumps (as if felt through your boots), suit breathing, and Quindar radio tones at the turn change. Impacts come from sudden velocity changes in the sim.
+Synthesised with Web Audio: wood-on-wood clacks (modal sine partials plus a noise burst), thuds on grass, the whoosh of a throw, birds and wind for the park. On the Moon there's no air, so only muffled thumps (as if felt through your boots), suit breathing, and Quindar radio tones at the turn change. Impacts come from sudden velocity changes in the sim (the whole vector beyond gravity, so glancing bounces count), labelled wood or ground from what the piece is touching in Rapier's contact graph.
 
 ### Beer mode: `src/game/bac.ts`
 

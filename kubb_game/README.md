@@ -5,7 +5,7 @@ The Viking lawn game in 3D, in your browser. Knock down the other team's kubbs w
 - **Real physics**: life-size wooden pieces, batons that tumble end over end, kubbs that fall the way wood falls on grass.
 - **Teams**: any number of players per side, taking turns to throw. Mix humans and computer players (easy, medium, hard), on one computer or online.
 - **Online with friends**: host a game, send the link. Games go directly between browsers; there's no account and no server to run.
-- **Three places to play**: a summer park; the Moon, with one-sixth gravity, no air, and dust that hangs in perfect arcs; and the ocean floor, in brass diving helmets, where the water drags at every throw among kelp, fish and bubbles.
+- **Three places to play**: a summer park; the Moon, with one-sixth gravity, no air, plumes of dust that fly in perfect arcs, and craters that every hard landing digs, that pieces roll into, and that grow when you keep hitting the same spot; and the ocean floor, in brass diving helmets, where the water drags at every throw among kelp, fish and bubbles.
 - **Beer mode** (optional): everyone drinks as the game goes on. A modest buzz sharpens your throw; overdo it and the world blurs and sways. Cans pile up around the cooler. Simulated, for fun.
 - **Practice mode** with a throw-arc preview.
 - Works with a mouse, a trackpad or a touch screen. Experimental VR (WebXR), not yet tested on a headset.

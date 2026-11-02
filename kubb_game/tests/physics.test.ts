@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { DEG } from '../src/config.ts';
 import { applyAction } from '../src/game/session.ts';
 import { hashState } from '../src/sim/hash.ts';
-import { simulateThrow } from '../src/sim/physics.ts';
+import { simulateThrow, ThrowSim } from '../src/sim/physics.ts';
 import { currentActor, isUpright } from '../src/sim/rules.ts';
 import { arcPoints, makeIntent, mediumOf, releasePoint, solveSpeed, speedScale } from '../src/throw/model.ts';
 import type { GameState, ThrowIntent, Vec3 } from '../src/types.ts';
@@ -54,6 +54,35 @@ describe('physics', () => {
       if (!isUpright(r.pieces.k7!)) hits++;
     }
     expect(hits / tries).toBeGreaterThan(0.6);
+  });
+
+  // Plumes and craters hang off these: a glancing bounce must count, not just a hard stop.
+  it('reports a ground impact for every bounce off the lunar surface', () => {
+    const s = game({ setting: 'moon' });
+    let bounces = 0;
+    for (let loft = 14; loft <= 50; loft += 4) {
+      const sim = new ThrowSim(s, aimAt(s, [1.5, 0, 2.5], loft));
+      sim.collectImpacts = true;
+      const thrown = sim.bodies.find((b) => b.id === sim.thrownId)!.body;
+      let vy = 0;
+      let missed = 0;
+      let recent = 0;
+      while (!sim.done) {
+        sim.step();
+        const t = thrown.translation();
+        if (sim.drainImpacts().some((i) => i.surface === 'grass' && Math.abs(i.p[0] - t.x) + Math.abs(i.p[2] - t.z) < 0.2)) recent = 3;
+        const v = thrown.linvel().y;
+        if (vy < -0.5 && v > 0.1) {
+          bounces++;
+          if (recent === 0) missed++;
+        }
+        vy = v;
+        recent = Math.max(0, recent - 1);
+      }
+      sim.free();
+      expect(missed, `loft ${loft}`).toBe(0);
+    }
+    expect(bounces).toBeGreaterThan(5);
   });
 
   it('settles well before the time limit', () => {

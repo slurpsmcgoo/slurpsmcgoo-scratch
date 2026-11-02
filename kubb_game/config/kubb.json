@@ -65,7 +65,29 @@
     "settleLinear": 0.04,
     "settleAngular": 0.15,
     "settleSteps": 30,
-    "maxSeconds": 10
+    "maxSeconds": 10,
+    "deformable": false
+  },
+  "terrain": {
+    "width": 14,
+    "depth": 20,
+    "cell": 0.05,
+    "physicsStride": 2,
+    "minDv": 0.6,
+    "depthPerImpulse": 0.02,
+    "maxDentDepth": 0.035,
+    "radiusBase": 0.06,
+    "radiusPerImpulse": 0.07,
+    "maxRadius": 0.28,
+    "elongationPer": 0.5,
+    "maxElongation": 2.2,
+    "downrangeShift": 0.35,
+    "rimFraction": 0.4,
+    "rimReach": 1.6,
+    "rimDownrange": 0.8,
+    "maxSlope": 0.287,
+    "maxDepth": 0.08,
+    "relaxPasses": 6
   },
   "throw": {
     "releaseHeight": 0.75,
@@ -297,7 +319,8 @@
         "grassAngularDamping": 3.5,
         "maxSeconds": 25,
         "rollingResistance": 0.22,
-        "landingKeep": 0.35
+        "landingKeep": 0.35,
+        "deformable": true
       }
     },
     "ocean": {

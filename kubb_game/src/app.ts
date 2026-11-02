@@ -203,7 +203,6 @@ export class App {
     ]);
     const ctl = new GameController(createGame(bots, { setting: this.settings.setting }), `demo-${this.clientId}`);
     this.stage.setSetting(this.settings.setting);
-    this.stage.env?.reset?.();
     const view = new GameView(this.stage, ctl, (e) => this.impactEffects(e.impact), false);
     view.setPaint(this.settings.kubbPaint);
     this.demo = { ctl, view };
@@ -221,7 +220,6 @@ export class App {
     this.ctl = ctl;
     this.stage.setSetting(ctl.state.setting);
     this.sound.setSurface(sceneDef(ctl.state.setting).surface);
-    this.stage.env?.reset?.();
     this.view = new GameView(this.stage, ctl, (e) => {
       this.sound.impact(e.impact);
       this.impactEffects(e.impact);
@@ -238,12 +236,12 @@ export class App {
   private impactEffects(impact: Impact): void {
     const env = this.stage.env;
     if (!env) return;
-    const ground = impact.surface === 'grass' && impact.p[1] < 0.2;
+    const ground = impact.surface === 'grass';
     if (env.surface === 'regolith') {
-      // On the Moon only ground hits throw up regolith, and every one leaves a mark.
+      // On the Moon only ground hits throw up regolith; hard ones leave a dent (made by the sim).
       if (!ground) return;
-      if (impact.strength > 0.5) this.stage.dust.puff(impact.p, impact.strength, env.surface);
-      env.deform?.(impact.p, impact.strength);
+      this.stage.dust.puff(impact.p, impact.strength, env.surface);
+      if (impact.dent) env.dent?.(impact.dent);
       return;
     }
     if (impact.strength > 0.8) this.stage.dust.puff(impact.p, impact.strength, env.surface);

@@ -12,7 +12,7 @@ Run from `kubb_game/`.
 |---|---|
 | `npm run dev` | Dev server at http://localhost:5174. `?net=local` makes online play use a BroadcastChannel between tabs of one browser (no internet). `?debug=1` shows FPS and sim state. |
 | `npm run typecheck` | `tsc` over src, tests and configs. |
-| `npm test` | Vitest: rules, physics, determinism, throw model, bots, whole bot games (park and moon), host/client sync (including late join and disconnect mid-throw), architecture rules. About 10 s. |
+| `npm test` | Vitest: rules, physics, determinism, throw model, bots, whole bot games (park, moon, ocean), deformable lunar terrain, host/client sync (park and moon, late join, disconnect mid-throw), architecture rules. About 15 s. |
 | `npm run build` | Production bundle in `dist/` (relative paths, for GitHub Pages). |
 | `npm run preview` | Serves `dist/`. |
 
@@ -24,13 +24,13 @@ Pushes to `main` that touch `kubb_game/` deploy to GitHub Pages via `.github/wor
 config/kubb.json   every tunable: pitch, pieces, rules switches, physics, throw input, bots, camera, audio, quality, scenes (settings) with physics overrides
 src/types.ts       the contract between modules; GameState travels over the network as JSON
 src/config.ts      typed config, sceneDef(), physicsFor(setting)
-src/sim/           rules.ts (pure reducer), physics.ts (ThrowSim), pitch, setup, math, hash, rng  — no three, no DOM
+src/sim/           rules.ts (pure reducer), physics.ts (ThrowSim), terrain.ts (deformable ground from GameState.dents), pitch, setup, math, hash, rng  — no three, no DOM
 src/throw/         model.ts (ThrowIntent, ballistic solve with or without water drag, arc), flick.ts (gesture), dispersion.ts (aim circle: flick → where in it)
 src/bot/           computer players
 src/game/          session.ts (state + live ThrowSim + action queue), controller.ts (who acts; bots; network port), bac.ts (beer-mode BAC model and effects)
 src/net/           protocol, transport (PeerJS, BroadcastChannel, memory), room (host/client)
 src/input/         desktop.ts (mouse, trackpad, touch), xr.ts (WebXR, untested on hardware)
-src/render/        stage, environment (park, moon), ocean, impacts (lasting lunar dents), textures (procedural), pieces, cans, avatars, camera, view, dust
+src/render/        stage, environment (park, moon), ocean, impacts (draws the deformable ground), textures (procedural), pieces, cans, avatars, camera, view, dust
 src/audio/         synthesised sound
 src/ui/            menu, hud, settings, dom helpers, styles.css
 src/debug/         scenarios for browser checks
@@ -46,6 +46,7 @@ tests/             vitest
 - **Settings that change physics put it in their scene's `physics` block**, read through `physicsFor(state.setting)`. The setting is part of `GameState` so every peer simulates the same world.
 - **Rendering never changes game state.** `render/` reads the controller; the architecture test fails if it calls the reducers.
 - **Every tunable number lives in `config/kubb.json`.**
+- **Deformable ground lives in the state.** `GameState.dents` is the list of every dent, in integers; the terrain grid is a pure function of it (`sim/terrain.ts`), used by the physics (as a heightfield), the rules (to stand kubbs on the ground) and the renderer. Never change the ground any other way.
 - **Beer mode lives in the state** (`beer`, `clock`, `drinks`), so every peer computes the same BAC from the game clock. Its effects on a throw are applied on the thrower's side before the intent is built (`throw/dispersion.ts`), never in the sim.
 - **No brand names or logos.** Beer cans use colour schemes only, with generic words.
 - **No asset files.** Meshes, textures and sounds are generated in code. Keep it that way unless the user agrees otherwise (licences, size, agent-editability).
